@@ -234,7 +234,7 @@ router.post("/unblockip", async (req, res) => {
 
   try {
     // Check if the IP address is already in the database and marked as banned
-    // const bannedIp = await IpList.findOne({ ip: ipAddress, status: "Banned" });
+    const bannedIp = await IpList.findOne({ ip: ipAddress, status: "Banned" });
 
     // if (!bannedIp) {
     //   return res.status(400).json({ message: "IP address is not currently banned." });
