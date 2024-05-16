@@ -144,18 +144,18 @@ router.post("/banip", (req, res) => {
       const lastLine = lines[lines.length - 2]; // Second last line to account for empty line at end
 
       // console.log(lastLine, "lastLine__________________________________");
-      console.log(
-        lines[lines.length - 1],
-        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++1"
-      );
-      console.log(
-        lines[lines.length - 2],
-        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++2"
-      );
-      console.log(
-        lines[lines.length - 3],
-        "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++3"
-      );
+      // console.log(
+      //   lines[lines.length - 1],
+      //   "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++1"
+      // );
+      // console.log(
+      //   lines[lines.length - 2],
+      //   "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++2"
+      // );
+      // console.log(
+      //   lines[lines.length - 3],
+      //   "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++3"
+      // );
 
       const failedMatch = failedPattern.exec(lastLine);
       const successMatch = successPattern.exec(lastLine);
