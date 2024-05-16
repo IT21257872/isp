@@ -74,7 +74,21 @@ router.post("/banip", (req, res) => {
     throw new Error("None of the specified log files exist.");
   };
 
-  const banIP = (ipAddress) => {
+  const saveIPToDB = async (ipAddress, username, status, attempts) => {
+    try {
+      const ipList = new IpList({
+        ip: ipAddress,
+        username: username,
+        attempts: attempts ? attempts : 1, // Assuming this is the first attempt when saving to the database
+        status: status, // You can set status as 'blocked' or any other value as per your requirement
+      });
+      await ipList.save();
+    } catch (err) {
+      console.error("Error saving IP to database:", err);
+    }
+  };
+
+  const banIP = (ipAddress, username) => {
     exec(
       `sudo iptables -A INPUT -s ${ipAddress} -j DROP`,
       (error, stdout, stderr) => {
@@ -90,13 +104,18 @@ router.post("/banip", (req, res) => {
         }
         logger.info(`Banned IP: ${ipAddress}`);
         res.json({ message: `IP ${ipAddress} banned successfully` });
+        saveIPToDB(ipAddress, username, 5, "Banned");
       }
     );
   };
 
   const monitorSSHLog = (logFilePath) => {
     logger.info("Starting to monitor SSH log...");
-    const failedPattern = /Failed \w+ for (invalid user )?(?<username>\S+) from (?<ipAddress>\S+)/;
+    const failedPattern =
+      /Failed \w+ for (invalid user )?(?<username>\S+) from (?<ipAddress>\S+)/;
+    const successPattern =
+      /Accepted \w+ for (?<username>\S+) from (?<ipAddress>\S+)/;
+
     const watcher = chokidar.watch(logFilePath, {
       persistent: true,
       usePolling: true,
@@ -107,8 +126,13 @@ router.post("/banip", (req, res) => {
       const lines = fs.readFileSync(filePath, "utf-8").split("\n");
       const lastLine = lines[lines.length - 2]; // Second last line to account for empty line at end
       const failedMatch = failedPattern.exec(lastLine);
+      const successMatch = successPattern.exec(lastLine);
+
       if (failedMatch) {
         const { ipAddress } = failedMatch.groups;
+        const { username } = failedMatch.groups;
+        saveIPToDB(ipAddress, username, 1, "Failed");
+
         logger.info(`Detected failed login attempt from IP=${ipAddress}`);
         const currentTime = Date.now();
         if (!failedAttempts[ipAddress]) {
@@ -118,10 +142,17 @@ router.post("/banip", (req, res) => {
         failedAttempts[ipAddress] = failedAttempts[ipAddress].filter(
           (time) => currentTime - time <= 60000
         );
-        if (failedAttempts[ipAddress].length > 10) {
-          banIP(ipAddress);
+        if (failedAttempts[ipAddress].length > 5) {
+          banIP(ipAddress, username);
+          logger.info(`Banned IP: ${ipAddress}`);
           delete failedAttempts[ipAddress];
         }
+      } else if (successMatch) {
+        const { ipAddress } = successMatch.groups;
+        const { username } = successMatch.groups;
+        saveIPToDB(ipAddress, username, 0, "Success");
+        logger.info(`Detected successful login attempt from IP=${ipAddress}`);
+        delete failedAttempts[ipAddress];
       }
     });
   };
@@ -141,7 +172,5 @@ router.post("/banip", (req, res) => {
     res.status(500).json({ message: "Error", error: error.message });
   }
 });
-
-
 
 module.exports = router;
