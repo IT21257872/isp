@@ -143,7 +143,11 @@ router.post("/banip", (req, res) => {
       const lines = fs.readFileSync(filePath, "utf-8").split("\n");
       const lastLine = lines[lines.length - 2]; // Second last line to account for empty line at end
 
-      console.log(lastLine, "lastLine__________________________________");
+      // console.log(lastLine, "lastLine__________________________________");
+      console.log(
+        lines,
+        "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      );
 
       const failedMatch = failedPattern.exec(lastLine);
       const successMatch = successPattern.exec(lastLine);
