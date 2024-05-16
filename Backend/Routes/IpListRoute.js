@@ -108,6 +108,22 @@ router.post("/banip", (req, res) => {
       }
     );
   };
+  const banIPs = (ipAddress) => {
+    exec(
+      `sudo iptables -A INPUT -s ${ipAddress} -j DROP`,
+      (error, stdout, stderr) => {
+        if (error) {
+          logger.error(`Error banning IP: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          logger.error(`Stderr: ${stderr}`);
+          return;
+        }
+        logger.info(`Banned IP: ${ipAddress}`);
+      }
+    );
+  };
 
   const monitorSSHLog = (logFilePath) => {
     logger.info("Starting to monitor SSH log...");
@@ -125,34 +141,47 @@ router.post("/banip", (req, res) => {
     watcher.on("change", (filePath) => {
       const lines = fs.readFileSync(filePath, "utf-8").split("\n");
       const lastLine = lines[lines.length - 2]; // Second last line to account for empty line at end
+
       const failedMatch = failedPattern.exec(lastLine);
       const successMatch = successPattern.exec(lastLine);
 
       if (failedMatch) {
-        const { ipAddress } = failedMatch.groups;
-        const { username } = failedMatch.groups;
-        saveIPToDB(ipAddress, username, 1, "Failed");
+        const { ipAddress, username } = failedMatch.groups;
+        saveIPToDB(ipAddress, username, "Failed");
+        logger.info(
+          `Detected failed login attempt from IP=${ipAddress}, Username=${username}`
+        );
+        console.log(
+          `Detected failed login attempt: IP=${ipAddress}, Username=${username}`
+        );
 
-        logger.info(`Detected failed login attempt from IP=${ipAddress}`);
+        // Track failed attempts
         const currentTime = Date.now();
         if (!failedAttempts[ipAddress]) {
           failedAttempts[ipAddress] = [];
         }
+
         failedAttempts[ipAddress].push(currentTime);
+
+        // Filter out attempts older than 1 minute
         failedAttempts[ipAddress] = failedAttempts[ipAddress].filter(
           (time) => currentTime - time <= 60000
         );
         if (failedAttempts[ipAddress].length > 5) {
-          banIP(ipAddress, username);
-          logger.info(`Banned IP: ${ipAddress}`);
-          delete failedAttempts[ipAddress];
+          saveIPToDB(
+            ipAddress,
+            username,
+            "Failed",
+            failedAttempts[ipAddress].length
+          );
+          banIP(ipAddress);
+          delete failedAttempts[ipAddress]; // Clear failed attempts after banning
         }
       } else if (successMatch) {
-        const { ipAddress } = successMatch.groups;
-        const { username } = successMatch.groups;
-        saveIPToDB(ipAddress, username, 0, "Success");
-        logger.info(`Detected successful login attempt from IP=${ipAddress}`);
-        delete failedAttempts[ipAddress];
+        const { ipAddress, username } = successMatch.groups;
+        saveIPToDB(ipAddress, username, "Success");
+        logger.info(`Successful login: Username=${username}, IP=${ipAddress}`);
+        console.log(`Successful login: Username=${username}, IP=${ipAddress}`);
       }
     });
   };
