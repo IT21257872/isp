@@ -145,8 +145,16 @@ router.post("/banip", (req, res) => {
 
       // console.log(lastLine, "lastLine__________________________________");
       console.log(
-        lines,
-        "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+        lines[lines.length - 1],
+        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++1"
+      );
+      console.log(
+        lines[lines.length - 2],
+        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++2"
+      );
+      console.log(
+        lines[lines.length - 3],
+        "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++3"
       );
 
       const failedMatch = failedPattern.exec(lastLine);
