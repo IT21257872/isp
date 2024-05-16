@@ -81,8 +81,13 @@ router.post("/banip", (req, res) => {
       if (existingIp) {
         // If the IP address is already present in the database, update the attempts and status
         // existingIp.attempts = attempts ? attempts : existingIp.attempts + 1
+        // existingIp.attempts = attempts
+        //   ? parseInt(attempts)
+        //   : existingIp.attempts + 1;
+
+        // Inside saveIPToDB function
         existingIp.attempts = attempts
-          ? parseInt(attempts)
+          ? parseInt(existingIp.attempts) + parseInt(attempts)
           : existingIp.attempts + 1;
 
         existingIp.status = "Banned";
