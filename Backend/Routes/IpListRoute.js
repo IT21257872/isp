@@ -103,8 +103,8 @@ router.post("/banip", (req, res) => {
           return;
         }
         logger.info(`Banned IP: ${ipAddress}`);
-        res.json({ message: `IP ${ipAddress} banned successfully` });
-        saveIPToDB(ipAddress, username, 5, "Banned");
+        // res.json({ message: `IP ${ipAddress} banned successfully` });
+        // saveIPToDB(ipAddress, username, 5, "Banned");
       }
     );
   };
