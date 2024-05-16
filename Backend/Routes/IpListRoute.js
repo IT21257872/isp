@@ -127,6 +127,7 @@ router.post("/banip", (req, res) => {
 
   const monitorSSHLog = (logFilePath) => {
     logger.info("Starting to monitor SSH log...");
+
     const failedPattern =
       /Failed \w+ for (invalid user )?(?<username>\S+) from (?<ipAddress>\S+)/;
     const successPattern =
@@ -141,6 +142,8 @@ router.post("/banip", (req, res) => {
     watcher.on("change", (filePath) => {
       const lines = fs.readFileSync(filePath, "utf-8").split("\n");
       const lastLine = lines[lines.length - 2]; // Second last line to account for empty line at end
+
+      console.log(lastLine, "lastLine__________________________________");
 
       const failedMatch = failedPattern.exec(lastLine);
       const successMatch = successPattern.exec(lastLine);
@@ -200,19 +203,6 @@ router.post("/banip", (req, res) => {
     logger.error(error.message);
     res.status(500).json({ message: "Error", error: error.message });
   }
-});
-
-
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.printf(
-      ({ timestamp, level, message }) =>
-        `${timestamp} - ${level.toUpperCase()} - ${message}`
-    )
-  ),
-  transports: [new winston.transports.Console()],
 });
 
 router.post("/unblockip", async (req, res) => {
