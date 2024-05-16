@@ -202,6 +202,19 @@ router.post("/banip", (req, res) => {
   }
 });
 
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(
+      ({ timestamp, level, message }) =>
+        `${timestamp} - ${level.toUpperCase()} - ${message}`
+    )
+  ),
+  transports: [new winston.transports.Console()],
+});
+
 router.post("/unblockip", async (req, res) => {
   const { ipAddress } = req.body;
 
