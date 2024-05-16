@@ -52,6 +52,7 @@ router.put("/:id", async (req, res) => {
 
 router.post("/banip", (req, res) => {
   // Configure logging
+// Configure logging
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -87,6 +88,8 @@ const banIP = (ipAddress) => {
     }
     logger.info(`Banned IP: ${ipAddress}`);
   });
+};
+
 const monitorSSHLog = (logFilePath) => {
   logger.info('Starting to monitor SSH log...');
 
@@ -110,6 +113,7 @@ const monitorSSHLog = (logFilePath) => {
       const { ipAddress, username } = failedMatch.groups;
       logger.info(`Detected failed login attempt from IP=${ipAddress}, Username=${username}`);
       console.log(`Detected failed login attempt: IP=${ipAddress}, Username=${username}`);
+
       // Track failed attempts
       const currentTime = Date.now();
       if (!failedAttempts[ipAddress]) {
@@ -121,7 +125,7 @@ const monitorSSHLog = (logFilePath) => {
       // Filter out attempts older than 1 minute
       failedAttempts[ipAddress] = failedAttempts[ipAddress].filter(time => (currentTime - time) <= 60000);
 
-      if (failedAttempts[ipAddress].length > 5) {
+      if (failedAttempts[ipAddress].length > 10) {
         banIP(ipAddress);
         delete failedAttempts[ipAddress]; // Clear failed attempts after banning
       }
@@ -146,7 +150,7 @@ try {
 } catch (error) {
   logger.error(error.message);
   console.error(error.message);
-}
+
 }
 });
 
