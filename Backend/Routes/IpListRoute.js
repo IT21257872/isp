@@ -76,13 +76,25 @@ router.post("/banip", (req, res) => {
 
   const saveIPToDB = async (ipAddress, username, status, attempts) => {
     try {
-      const ipList = new IpList({
-        ip: ipAddress,
-        username: username,
-        attempts: attempts ? attempts : 1, // Assuming this is the first attempt when saving to the database
-        status: status, // You can set status as 'blocked' or any other value as per your requirement
-      });
-      await ipList.save();
+      // Check if the IP address is already present in the database
+      const existingIp = await IpList.findOne({ ip: ipAddress });
+      if (existingIp) {
+        // If the IP address is already present in the database, update the attempts and status
+        existingIp.attempts = attempts ? attempts : existingIp.attempts + 1;
+        existingIp.status = status;
+        await existingIp.save();
+        return;
+      }
+      // If the IP address is not present in the database, create a new entry
+      else {
+        const ipList = new IpList({
+          ip: ipAddress,
+          username: username,
+          attempts: attempts ? attempts : 1, // Assuming this is the first attempt when saving to the database
+          status: status, // You can set status as 'blocked' or any other value as per your requirement
+        });
+        await ipList.save();
+      }
     } catch (err) {
       console.error("Error saving IP to database:", err);
     }
