@@ -90,7 +90,7 @@ router.post("/banip", (req, res) => {
         const ipList = new IpList({
           ip: ipAddress,
           username: username,
-          attempts: attempts ? attempts : 1, // Assuming this is the first attempt when saving to the database
+          attempts: 1, // Assuming this is the first attempt when saving to the database
           status: status, // You can set status as 'blocked' or any other value as per your requirement
         });
         await ipList.save();
