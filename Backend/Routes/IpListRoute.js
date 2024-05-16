@@ -246,7 +246,8 @@ router.post("/unblockip", async (req, res) => {
 
   try {
     // Check if the IP address is already in the database and marked as banned
-    const bannedIp = await IpList.findOne({ ip: ipAddress, status: "Banned" });
+    // const bannedIp = await IpList.findOne({ ip: ipAddress, status: "Banned" });
+    // const existingIp = await IpList.findOne({ ip: ipAddress });
 
     // if (!bannedIp) {
     //   return res.status(400).json({ message: "IP address is not currently banned." });
@@ -270,14 +271,12 @@ router.post("/unblockip", async (req, res) => {
             .json({ message: "Error unblocking IP", error: stderr });
         }
         logger.info(`Unblocked IP: ${ipAddress}`);
-
-        // Update the IP status in the database
-        bannedIp.status = "Unblocked";
-        bannedIp.save();
-
         return res.json({ message: `IP ${ipAddress} unblocked successfully` });
       }
     );
+    const existingIp = await IpList.findOne({ ip: ipAddress });
+    existingIp.status = "Unblocked";
+    existingIp.save();
   } catch (err) {
     logger.error("Error unblocking IP:", err);
     res.status(500).json({ message: "Error unblocking IP", error: err });
