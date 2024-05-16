@@ -207,11 +207,11 @@ router.post("/unblockip", async (req, res) => {
 
   try {
     // Check if the IP address is already in the database and marked as banned
-    const bannedIp = await IpList.findOne({ ip: ipAddress, status: "Banned" });
+    // const bannedIp = await IpList.findOne({ ip: ipAddress, status: "Banned" });
 
-    if (!bannedIp) {
-      return res.status(400).json({ message: "IP address is not currently banned." });
-    }
+    // if (!bannedIp) {
+    //   return res.status(400).json({ message: "IP address is not currently banned." });
+    // }
 
     // Execute the command to remove the IP from the firewall rules
     exec(
@@ -219,11 +219,15 @@ router.post("/unblockip", async (req, res) => {
       (error, stdout, stderr) => {
         if (error) {
           logger.error(`Error unblocking IP: ${error.message}`);
-          return res.status(500).json({ message: "Error unblocking IP", error: error });
+          return res
+            .status(500)
+            .json({ message: "Error unblocking IP", error: error });
         }
         if (stderr) {
           logger.error(`Stderr: ${stderr}`);
-          return res.status(500).json({ message: "Error unblocking IP", error: stderr });
+          return res
+            .status(500)
+            .json({ message: "Error unblocking IP", error: stderr });
         }
         logger.info(`Unblocked IP: ${ipAddress}`);
 
@@ -239,6 +243,5 @@ router.post("/unblockip", async (req, res) => {
     res.status(500).json({ message: "Error unblocking IP", error: err });
   }
 });
-
 
 module.exports = router;
