@@ -203,7 +203,7 @@ router.post("/banip", (req, res) => {
         failedAttempts[ipAddress] = failedAttempts[ipAddress].filter(
           (time) => currentTime - time <= 60000
         );
-        if (failedAttempts[ipAddress].length > 3) {
+        if (failedAttempts[ipAddress].length > 5) {
           saveIPToDB(
             ipAddress,
             username,
