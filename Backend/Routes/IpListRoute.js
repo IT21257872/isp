@@ -220,6 +220,18 @@ router.post("/banip", (req, res) => {
 router.post("/unblockip", async (req, res) => {
   const { ipAddress } = req.body;
 
+  const logger = winston.createLogger({
+    level: "info",
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.printf(
+        ({ timestamp, level, message }) =>
+          `${timestamp} - ${level.toUpperCase()} - ${message}`
+      )
+    ),
+    transports: [new winston.transports.Console()],
+  });
+
   try {
     // Check if the IP address is already in the database and marked as banned
     // const bannedIp = await IpList.findOne({ ip: ipAddress, status: "Banned" });
@@ -229,6 +241,7 @@ router.post("/unblockip", async (req, res) => {
     // }
 
     // Execute the command to remove the IP from the firewall rules
+
     exec(
       `sudo iptables -D INPUT -s ${ipAddress} -j DROP`,
       (error, stdout, stderr) => {
