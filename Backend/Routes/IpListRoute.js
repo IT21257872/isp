@@ -51,8 +51,6 @@ router.put("/:id", async (req, res) => {
 });
 
 router.post("/banip", (req, res) => {
-  // Configure logging
-  // Configure logging
   const logger = winston.createLogger({
     level: "info",
     format: winston.format.combine(
@@ -65,119 +63,62 @@ router.post("/banip", (req, res) => {
     transports: [new winston.transports.Console()],
   });
 
-  // Track failed attempts
-  const failedAttempts = {};
-
-  const findLogFile = (possiblePaths) => {
-    for (const filePath of possiblePaths) {
-      if (fs.existsSync(filePath)) {
-        return filePath;
-      }
-    }
-    throw new Error("None of the specified log files exist.");
-  };
-
   const banIP = (ipAddress) => {
     exec(
       `sudo iptables -A INPUT -s ${ipAddress} -j DROP`,
       (error, stdout, stderr) => {
         if (error) {
           logger.error(`Error banning IP: ${error.message}`);
+          res.status(500).json({ message: "Error banning IP", error: error });
           return;
         }
         if (stderr) {
           logger.error(`Stderr: ${stderr}`);
+          res.status(500).json({ message: "Error banning IP", error: stderr });
           return;
         }
         logger.info(`Banned IP: ${ipAddress}`);
+        res.json({ message: "IP banned successfully", ipAddress: ipAddress });
       }
     );
   };
 
-  const monitorSSHLog = (logFilePath) => {
+  const monitorSSHLog = async (logFilePath) => {
     logger.info("Starting to monitor SSH log...");
-
-    const failedPattern =
-      /Failed \w+ for (invalid user )?(?<username>\S+) from (?<ipAddress>\S+)/;
-    const successPattern =
-      /Accepted \w+ for (?<username>\S+) from (?<ipAddress>\S+)/;
-
+    const failedPattern = /Failed \w+ for (invalid user )?(?<username>\S+) from (?<ipAddress>\S+)/;
     const watcher = chokidar.watch(logFilePath, {
       persistent: true,
       usePolling: true,
       interval: 1000,
     });
 
-    watcher.on("change", (filePath) => {
+    watcher.on("change", async (filePath) => {
       const lines = fs.readFileSync(filePath, "utf-8").split("\n");
       const lastLine = lines[lines.length - 2]; // Second last line to account for empty line at end
-
       const failedMatch = failedPattern.exec(lastLine);
-      const successMatch = successPattern.exec(lastLine);
 
       if (failedMatch) {
         const { ipAddress, username } = failedMatch.groups;
-
-        const ipList = new IpList({
-          ip: ipAddress,
-          username: username,
-          attempts: 1,
-          status: "Failed",
-        });
+        logger.info(`Detected failed login attempt from IP=${ipAddress}, Username=${username}`);
         try {
-          const savedIpList = ipList.save();
-          res.json(savedIpList);
-          console.log(`IpList ${ipAddress} saved successfully-failed`);
+          // Save to database
+          const ipList = new IpList({
+            ip: ipAddress,
+            username: username,
+            attempts: 1,
+            status: "Failed",
+          });
+          const savedIpList = await ipList.save();
+          logger.info(`IpList ${ipAddress} saved successfully-failed`);
         } catch (err) {
-          res.status(500).json({ message: "Error saving IpList", error: err });
+          logger.error("Error saving IpList", err);
         }
 
-        logger.info(
-          `Detected failed login attempt from IP=${ipAddress}, Username=${username}`
-        );
-        console.log(
-          `Detected failed login attempt: IP=${ipAddress}, Username=${username}`
-        );
-
-        // Track failed attempts
-        const currentTime = Date.now();
-        if (!failedAttempts[ipAddress]) {
-          failedAttempts[ipAddress] = [];
-        }
-
-        failedAttempts[ipAddress].push(currentTime);
-
-        // Filter out attempts older than 1 minute
-        failedAttempts[ipAddress] = failedAttempts[ipAddress].filter(
-          (time) => currentTime - time <= 60000
-        );
-
-        if (failedAttempts[ipAddress].length > 10) {
-          banIP(ipAddress);
-          delete failedAttempts[ipAddress]; // Clear failed attempts after banning
-        }
-      } else if (successMatch) {
-        const { ipAddress, username } = successMatch.groups;
-        const ipList = new IpList({
-          ip: ipAddress,
-          username: username,
-          attempts: 1,
-          status: "Success",
-        });
-        try {
-          const savedIpList = ipList.save();
-          res.json(savedIpList);
-          console.log(`IpList ${ipAddress} saved successfully -success`);
-        } catch (err) {
-          res.status(500).json({ message: "Error saving IpList", error: err });
-        }
-        logger.info(`Successful login: Username=${username}, IP=${ipAddress}`);
-        console.log(`Successful login: Username=${username}, IP=${ipAddress}`);
+        banIP(ipAddress);
       }
     });
   };
 
-  // List of possible log file paths
   const possibleLogPaths = [
     "/var/log/auth.log",
     "/var/log/secure",
@@ -189,8 +130,9 @@ router.post("/banip", (req, res) => {
     monitorSSHLog(logFilePath);
   } catch (error) {
     logger.error(error.message);
-    console.error(error.message);
+    res.status(500).json({ message: "Error finding log file", error: error.message });
   }
 });
+
 
 module.exports = router;
