@@ -254,6 +254,9 @@ router.post("/unblockip", async (req, res) => {
     // }
 
     // Execute the command to remove the IP from the firewall rules
+    const existingIp = await IpList.findOne({ ip: ipAddress });
+    existingIp.status = "Unblocked";
+    existingIp.save();
 
     exec(
       `sudo iptables -D INPUT -s ${ipAddress} -j DROP`,
@@ -274,9 +277,6 @@ router.post("/unblockip", async (req, res) => {
         return res.json({ message: `IP ${ipAddress} unblocked successfully` });
       }
     );
-    const existingIp = await IpList.findOne({ ip: ipAddress });
-    existingIp.status = "Unblocked";
-    existingIp.save();
   } catch (err) {
     logger.error("Error unblocking IP:", err);
     res.status(500).json({ message: "Error unblocking IP", error: err });
