@@ -292,4 +292,20 @@ router.post("/unblockip", async (req, res) => {
   }
 });
 
+router.post("/search", async (req, res) => {
+  const { ipAddress } = req.body;
+  try {
+    const ipList = await IpList.find({
+      ip: { $regex: ipAddress, $options: "i" },
+    });
+    if (ipList.length === 0) {
+      res.status(200).send({ data: [], success: false });
+    } else {
+      res.status(200).send({ data: ipList, success: true });
+    }
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
 module.exports = router;
