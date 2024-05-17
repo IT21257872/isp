@@ -6,6 +6,7 @@ const fs = require("fs");
 const { exec } = require("child_process");
 const chokidar = require("chokidar");
 const winston = require("winston");
+const nodemailer = require("nodemailer");
 
 router.get("/", async (req, res) => {
   try {
@@ -110,6 +111,32 @@ router.post("/banip", (req, res) => {
   };
 
   const banIP = (ipAddress, username) => {
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "mohanmalika99@gmail.com",
+        pass: "khhg bead phmw fbhv",
+      },
+    });
+
+    const mailOptions = {
+      from: "mohanmalika99@gmail.com",
+      to: "mohanmalika99@gmail.com",
+      subject: "SSHield - IP Banned",
+      text: `The IP address ${ipAddress} has been blocked due to multiple failed login attempts..`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email: ", error);
+      } else {
+        console.log("Email sent: ", info.response);
+      }
+    });
+
     exec(
       `sudo iptables -A INPUT -s ${ipAddress} -j DROP`,
       (error, stdout, stderr) => {
@@ -294,6 +321,7 @@ router.post("/unblockip", async (req, res) => {
 
 router.post("/search", async (req, res) => {
   const { ipAddress } = req.body;
+
   try {
     const ipList = await IpList.find({
       ip: { $regex: ipAddress, $options: "i" },
